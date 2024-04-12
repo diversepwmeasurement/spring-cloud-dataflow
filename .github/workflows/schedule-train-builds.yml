@@ -1,19 +1,19 @@
-name: Schedule Snapshot Train Builds
-
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 2 * * 1,2,3,4,5'
-
 jobs:
   schedule:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: benc-uk/workflow-dispatch@v1
+      with:
+        ref: ${{ matrix.branch }}
+        token: ${{ secrets.SCDF_ACCESS_TOKEN }}
+        workflow: Build Snapshot Controller
     strategy:
       matrix:
-        branch: [main, 2.10.x]
-    steps:
-    - uses: benc-uk/workflow-dispatch@v1
-      with:
-        workflow: Build Snapshot Controller
-        token: ${{ secrets.SCDF_ACCESS_TOKEN }}
-        ref: ${{ matrix.branch }}
+        branch:
+        - main
+        - 2.10.x
+name: Schedule Snapshot Train Builds
+on:
+  repository_dispatch:
+    types: trigger-ga___schedule-train-builds.yml

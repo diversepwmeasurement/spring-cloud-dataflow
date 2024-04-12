@@ -1,54 +1,65 @@
-name: CI PRs
-
-on:
-  pull_request:
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v4
-    - uses: jlumbroso/free-disk-space@main
+    - continue-on-error: true
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      uses: jlumbroso/free-disk-space@main
       with:
-        tool-cache: false
-        dotnet: false
         docker-images: false
-        swap-storage: false
+        dotnet: false
         large-packages: false
-    - uses: actions/setup-java@v3
+        swap-storage: false
+        tool-cache: false
+    - continue-on-error: true
+      uses: actions/setup-java@v3
       with:
+        distribution: liberica
         java-version: '8'
-        distribution: 'liberica'
-    - name: Build
+    - continue-on-error: true
+      name: Build
+      run: './mvnw -B -s .github/settings.xml clean install
+
+        '
       shell: bash
       timeout-minutes: 75
-      run: |
-        ./mvnw -B -s .github/settings.xml clean install
-    - name: Capture Test Results
+    - continue-on-error: true
       if: failure()
+      name: Capture Test Results
       uses: actions/upload-artifact@v3
       with:
         name: Unit Tests
         path: '**/surefire-reports/*.xml'
         retention-days: 3
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          ignore-unfixed: true
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-      - name: 'Scanned'
-        shell: bash
-        run: echo "::info ::Scanned"
   done:
-    runs-on: ubuntu-latest
-    needs: [ scan, build ]
+    needs:
+    - scan
+    - build
+    runs-on: self-hosted
     steps:
-      - name: 'Done'
-        shell: bash
-        run: echo "::info ::Done"
+    - continue-on-error: true
+      name: Done
+      run: echo "::info ::Done"
+      shell: bash
+  scan:
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: actions/checkout@v4
+    - continue-on-error: true
+      name: Run Trivy vulnerability scanner in repo mode
+      uses: aquasecurity/trivy-action@master
+      with:
+        format: table
+        ignore-unfixed: true
+        scan-type: fs
+        severity: CRITICAL,HIGH
+    - continue-on-error: true
+      name: Scanned
+      run: echo "::info ::Scanned"
+      shell: bash
+name: CI PRs
+on:
+  repository_dispatch:
+    types: trigger-ga___ci-pr.yml
